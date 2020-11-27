@@ -25,6 +25,7 @@ const defaultSessionTTL = 60
 
 // Session represents a lease kept alive for the lifetime of a client.
 // Fault-tolerant applications may use sessions to reason about liveness.
+// Session 表示在客户的整个生命周期内均保持有效的租约(lease)。
 type Session struct {
 	client *v3.Client
 	opts   *sessionOptions
@@ -43,6 +44,7 @@ func NewSession(client *v3.Client, opts ...SessionOption) (*Session, error) {
 
 	id := ops.leaseID
 	if id == v3.NoLease {
+		// 如果没有 Lease 则创建一个
 		resp, err := client.Grant(ops.ctx, int64(ops.ttl))
 		if err != nil {
 			return nil, err
@@ -61,6 +63,7 @@ func NewSession(client *v3.Client, opts ...SessionOption) (*Session, error) {
 	s := &Session{client: client, opts: ops, id: id, cancel: cancel, donec: donec}
 
 	// keep the lease alive until client error or cancelled context
+	// 保持 Lease ，直到 client 错误或者 ctx 被取消
 	go func() {
 		defer close(donec)
 		for range keepAlive {
@@ -86,6 +89,7 @@ func (s *Session) Done() <-chan struct{} { return s.donec }
 // Orphan ends the refresh for the session lease. This is useful
 // in case the state of the client connection is indeterminate (revoke
 // would fail) or when transferring lease ownership.
+// Orphan 结束 Lease 刷新
 func (s *Session) Orphan() {
 	s.cancel()
 	<-s.donec
